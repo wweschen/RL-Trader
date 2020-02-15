@@ -1,0 +1,51 @@
+        log_x_mean = sequence_mean(tf.log((highs + lows) / 2. + 1), series_length)
+        log_x = log_transform((highs + lows) / 2., log_x_mean)
+        
+
+        log_opens_mean = sequence_mean(tf.log(opens + 1), series_length)
+        log_opens = log_transform(opens, log_opens_mean)
+
+        log_highs_mean = sequence_mean(tf.log(highs + 1), series_length)
+        log_highs = log_transform(highs, log_highs_mean)
+
+        log_lows_mean = sequence_mean(tf.log(lows + 1), series_length)
+        log_lows = log_transform(lows, log_lows_mean)
+
+        log_closes_mean = sequence_mean(tf.log(closes + 1), series_length)
+        log_closes = log_transform(closes, log_closes_mean)
+
+        log_volumes_mean = sequence_mean(tf.log(volumes + 1), series_length)
+        log_volumes = log_transform(volumes, log_volumes_mean)
+
+        position = tf.placeholder(tf.int32, [None])
+
+        log_order_prices = tf.log(order_prices + 1) - log_x_mean
+
+        log_est_current_prices = tf.log(est_current_prices + 1) - log_x_mean
+
+        x = tf.expand_dims(log_x, 2)
+
+        features = tf.concat([
+            tf.expand_dims(log_opens, 2),
+            tf.expand_dims(log_highs, 2),
+            tf.expand_dims(log_lows, 2),
+            tf.expand_dims(log_closes, 2),
+            tf.expand_dims(log_volumes, 2),
+
+            tf.tile(tf.expand_dims(tf.one_hot(position + 1, 3), 1), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.expand_dims(tf.one_hot(time_since_open, 60), 1), (1, tf.shape(opens)[1], 1)),
+
+            #tf.expand_dims(tf.cast(is_today, tf.float32), 2),
+
+            tf.tile(tf.reshape(log_opens_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_highs_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_lows_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_closes_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_volumes_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_x_mean, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_order_prices, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+            tf.tile(tf.reshape(log_est_current_prices, (-1, 1, 1)), (1, tf.shape(opens)[1], 1)),
+
+        ], axis=2)
+
+        return tf.concat([x, features], axis=2)
